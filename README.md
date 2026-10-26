@@ -5,6 +5,7 @@ Base URL: `https://ariespay.web.id/api/v1`
 Protocol: HTTPS (TLS 1.3)  
 Data Format: JSON (`application/json`)  
 Timezone Reference: Asia/Jakarta (WIB, UTC+7)  
+GitHub Repository: https://github.com/VynaaValerie/AriesPay/blob/main/README.md  
 
 ---
 
@@ -14,10 +15,11 @@ Timezone Reference: Asia/Jakarta (WIB, UTC+7)
 2. [Authentication & Security](#2-authentication--security)
 3. [Settlement & Balance Holding Policy (24-Hour WIB)](#3-settlement--balance-holding-policy-24-hour-wib)
 4. [API Endpoints](#4-api-endpoints)
-   - [4.1 Create Payment Order (POST /api/v1/order)](#41-create-payment-order-post-apiv1order)
-   - [4.2 Check Transaction Status (GET /api/v1/check-order)](#42-check-transaction-status-get-apiv1check-order)
-   - [4.3 Merchant Balance & Settlement Inquiry (GET /api/v1/merchant/balance)](#43-merchant-balance--settlement-inquiry-get-apiv1merchantbalance)
-   - [4.4 Withdrawal / Payout Request (POST /api/v1/tarik-saldo)](#44-withdrawal--payout-request-post-apiv1tarik-saldo)
+   - [4.1 Merchant Account Information (GET /api/v1/merchant/account)](#41-merchant-account-information-get-apiv1merchantaccount)
+   - [4.2 Create Payment Order (POST /api/v1/order)](#42-create-payment-order-post-apiv1order)
+   - [4.3 Check Transaction Status (GET /api/v1/check-order)](#43-check-transaction-status-get-apiv1check-order)
+   - [4.4 Merchant Balance & Settlement Inquiry (GET /api/v1/merchant/balance)](#44-merchant-balance--settlement-inquiry-get-apiv1merchantbalance)
+   - [4.5 Withdrawal / Payout Request (POST /api/v1/tarik-saldo)](#45-withdrawal--payout-request-post-apiv1tarik-saldo)
 5. [Webhook Callback Specification](#5-webhook-callback-specification)
    - [5.1 Webhook Payload](#51-webhook-payload)
    - [5.2 Signature Verification Formula](#52-signature-verification-formula)
@@ -25,6 +27,7 @@ Timezone Reference: Asia/Jakarta (WIB, UTC+7)
    - [5.4 Webhook Implementation Examples](#54-webhook-implementation-examples)
 6. [HTTP Status Codes & Error Handling](#6-http-status-codes--error-handling)
 7. [AI Integration Prompt (Cursor / Claude / ChatGPT / Gemini)](#7-ai-integration-prompt-cursor--claude--chatgpt--gemini)
+8. [Official Repository & Resources](#8-official-repository--resources)
 
 ---
 
@@ -80,7 +83,82 @@ AriesPay enforces an automated **24-Hour Settlement Holding Period (T+1)** based
 
 ## 4. API Endpoints
 
-### 4.1 Create Payment Order (POST /api/v1/order)
+### 4.1 Merchant Account Information (GET /api/v1/merchant/account)
+
+Inquiry endpoint to verify credentials, check environment mode (`sandbox` vs `production`), inspect active payment channels, KYC approval status, registered webhook URL, and balance summary.
+
+- **Endpoint**: `GET https://ariespay.web.id/api/v1/merchant/account` (Alias: `GET https://ariespay.web.id/api/v1/merchant/profile`)
+- **Headers**:
+  - `Content-Type: application/json`
+  - `x-merchant-id: AP_M267BF3849F`
+  - `x-secret-key: YOUR_SECRET_KEY`
+
+#### Request Parameters
+This endpoint does not require body parameters. Authentication is passed via HTTP Headers (`x-merchant-id` and `x-secret-key`) or query parameters (`merchant_id` & `signature`).
+
+#### Request Example (cURL)
+
+```bash
+curl -X GET "https://ariespay.web.id/api/v1/merchant/account" \
+  -H "Content-Type: application/json" \
+  -H "x-merchant-id: AP_M267BF3849F" \
+  -H "x-secret-key: sk_live_fc036ad0ed9644e20766937db59532d8b0e9aa6949a11e80"
+```
+
+#### Success Response (200 OK)
+
+```json
+{
+  "status": 1,
+  "rc": 200,
+  "message": "Sukses mengambil informasi akun merchant AriesPay",
+  "data": {
+    "merchant_id": "AP_M267BF3849F",
+    "nama_bisnis": "Toko Online Valerie",
+    "email": "valerie@example.com",
+    "telepon": "081234567890",
+    "status_akun": "active",
+    "status_kyc": "verified",
+    "environment": "sandbox",
+    "is_sandbox": true,
+    "is_maintenance": false,
+    "webhook_url": "https://aplikasi-anda.com/api/webhooks/ariespay",
+    "callback_ip_whitelist": [],
+    "bank_settlement": {
+      "bank_code": "BCA",
+      "account_number": "1234567890",
+      "account_name": "Valerie"
+    },
+    "saldo": {
+      "saldo_tersedia": 2500000,
+      "saldo_tertahan_24h": 500000,
+      "total_pendapatan": 3000000,
+      "total_ditarik": 0,
+      "settlement_delay": "24 Jam (Asia/Jakarta WIB)",
+      "transaksi_tertahan_count": 2
+    },
+    "channels_aktif_count": 16,
+    "channels_aktif": [
+      {
+        "id": "11",
+        "name": "QRIS Realtime AriesPay",
+        "alias": "QRIS",
+        "type": "QRIS",
+        "fee": "0.7%",
+        "minimum": 100,
+        "maximum": 10000000,
+        "settlement": "1x24Jam (Sabtu & Minggu Tetap Berjalan)"
+      }
+    ],
+    "created_at": "2026-10-15T08:00:00.000Z"
+  },
+  "ts": 1729908400
+}
+```
+
+---
+
+### 4.2 Create Payment Order (POST /api/v1/order)
 
 Creates a new payment transaction and returns payment instructions (QRIS string, checkout URL, or virtual account).
 
@@ -203,7 +281,7 @@ print("Payment URL:", data["data"]["pay_url"])
 
 ---
 
-### 4.2 Check Transaction Status (GET /api/v1/check-order)
+### 4.3 Check Transaction Status (GET /api/v1/check-order)
 
 Retrieves real-time transaction status, payment timestamps, and settlement holding maturity information.
 
@@ -247,7 +325,7 @@ curl -X GET "https://ariespay.web.id/api/v1/check-order?ref_id=INV-20261015-001"
 
 ---
 
-### 4.3 Merchant Balance & Settlement Inquiry (GET /api/v1/merchant/balance)
+### 4.4 Merchant Balance & Settlement Inquiry (GET /api/v1/merchant/balance)
 
 Retrieves the merchant ledger breakdown, including available balance, pending 24-hour held funds, and scheduled release times.
 
@@ -300,9 +378,12 @@ curl -X GET "https://ariespay.web.id/api/v1/merchant/balance" \
 
 ---
 
-### 4.4 Withdrawal / Payout Request (POST /api/v1/tarik-saldo)
+### 4.5 Withdrawal / Payout Request (POST /api/v1/tarik-saldo)
 
 Submits a payout request to a designated bank account or e-wallet. Only matured funds from `saldo_tersedia` can be withdrawn.
+
+> [!IMPORTANT]
+> **Kebijakan Batas Frekuensi Penarikan (1x Sehari)**: Sesuai regulasi keamanan kliring Bank Indonesia, setiap akun merchant dibatasi mengajukan penarikan maksimal **1 (satu) kali per hari (1x dalam kurun waktu 24 jam)**. Pengajuan kedua dalam kurun waktu 24 jam akan menghasilkan respon error `400 Bad Request`.
 
 - **Endpoint**: `POST https://ariespay.web.id/api/v1/tarik-saldo`
 - **Headers**:
@@ -542,3 +623,13 @@ Requirements:
 
 Please write clean, typed, modular code with complete error handling.
 ```
+
+---
+
+## 8. Official Repository & Resources
+
+- GitHub Repository & README: [https://github.com/VynaaValerie/AriesPay/blob/main/README.md](https://github.com/VynaaValerie/AriesPay/blob/main/README.md)
+- Web Documentation: [https://ariespay.web.id/docs](https://ariespay.web.id/docs)
+- Raw Markdown Endpoint: [https://ariespay.web.id/docs.md](https://ariespay.web.id/docs.md)
+- LLMs / AI Context: [https://ariespay.web.id/llms.txt](https://ariespay.web.id/llms.txt)
+
