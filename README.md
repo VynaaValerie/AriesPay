@@ -102,7 +102,7 @@ This endpoint does not require body parameters. Authentication is passed via HTT
 curl -X GET "https://ariespay.web.id/api/v1/merchant/account" \
   -H "Content-Type: application/json" \
   -H "x-merchant-id: AP_M267BF3849F" \
-  -H "x-secret-key: sk_live_fc036ad0ed9644e20766937db59532d8b0e9aa6949a11e80"
+  -H "x-secret-key: sk_live_your_secret_key"
 ```
 
 #### Success Response (200 OK)
